@@ -1,17 +1,3 @@
-// A fun MATRIX-like screen demo of scrolling
-// Screen will flicker initially until fully drawn
-// then scroll smoothly
-
-// Needs GLCD font
-
-/*
- Make sure all the display driver and pin comnenctions are correct by
- editting the User_Setup.h file in the TFT_eSPI library folder.
-
- #########################################################################
- ###### DON'T FORGET TO UPDATE THE User_Setup.h FILE IN THE LIBRARY ######
- #########################################################################
-*/
 
 #include <TFT_eSPI.h> // Hardware-specific library
 #include <SPI.h>
@@ -57,7 +43,7 @@ HTTPClient http;
 // Numeric display box size and location
 #define DISP_X 1
 #define DISP_Y 10
-#define DISP_W 238
+#define DISP_W 438
 #define DISP_H 50
 #define DISP_TSIZE 3
 #define DISP_TCOLOR TFT_CYAN
@@ -146,7 +132,7 @@ void touch_calibrate()
 void drawPlayButton()
 {
   // Draw the keys
-  tft.setFreeFont(LABEL1_FONT);
+//  tft.setFreeFont(LABEL1_FONT);
   
 
   key.initButton(&tft, KEY_X + (KEY_W + KEY_SPACING_X),
@@ -209,49 +195,65 @@ void setup() {
     str += dir.fileSize();
     str += "\r\n";
   }
-Serial.print(str);
+  Serial.print(str);
+  draw_image();
   startPlaying("/game_over.wav");
+  touch_calibrate();
 }
 
 void loop(void) {
-Serial.print("loop\n");
-//drawPlayButton();
-phack_scroll();
-delay(1000);
-phack_print();
-draw_image();
-
-
-uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
-// Pressed will be set true is there is a valid touch on the screen
-boolean pressed = tft.getTouch(&t_x, &t_y);
-
-// Check if any key coordinate boxes contain the touch coordinates
-if (pressed && key.contains(t_x, t_y)) {
-      key.press(true);  // tell the button it is pressed
-} else {
-      key.press(false);  // tell the button it is NOT pressed
-    }
-
-if (key.justReleased()) key.drawButton();     // draw normal
-    if (key.justPressed()) {
-      key.drawButton(true);  // draw invert
-      startPlaying("/T0.wav");
+    Serial.print("loop\n");
+    
+    phack_scroll();
+    delay(1000);
+    phack_print();
+    draw_image();
+    tft.fillScreen(ILI9341_BLACK);
+    drawPlayButton();
+    int i = 0;
+    while (i < 50 ){
+      uint16_t t_x = 0, t_y = 0; // To store the touch coordinates
+      // Pressed will be set true is there is a valid touch on the screen
+      boolean pressed = tft.getTouch(&t_x, &t_y);
       
-
-      delay(10); // UI debouncing
+      // Check if any key coordinate boxes contain the touch coordinates
+      if (pressed && key.contains(t_x, t_y)) {
+            key.press(true);  // tell the button it is pressed
+      } else {
+            key.press(false);  // tell the button it is NOT pressed
+          }
+      
+      if (key.justReleased()) key.drawButton();     // draw normal
+          if (key.justPressed()) {
+            key.drawButton(true);  // draw invert
+            startPlaying("/game_over.wav");
+            
+      
+            delay(10); // UI debouncing
+          }
+    i++;
     }
+    setupScrollArea(TOP_FIXED_AREA, BOT_FIXED_AREA);
 
 }
  
 
 void draw_image(void){
   tft.setRotation(2);  // portrait
-  tft.fillScreen(random(0xFFFF));
+  tft.fillScreen(ILI9341_BLACK);
   tft.setCursor(0, 10, 1);
-
-  drawJpeg("/phack.jpeg", 0 , 0);     // 240 x 320 image
-  //drawJpeg("/Baboon40.jpg", 0, 0); // 320 x 480 image
+  int randNumber = random(3);
+  switch (randNumber) {
+  case 1:
+    drawJpeg("/27.jpeg", 0 , 10);
+    break;
+  case 2:
+    drawJpeg("/noqtr.jpeg", 0 , 10);
+    break;
+  default:
+    drawJpeg("/phack.jpeg", 0 , 10);
+    break;
+  }
   delay(2000);
 }
 
@@ -282,7 +284,7 @@ void phack_print(void){
   // Set "cursor" at top left corner of display (0,0) and select font 2
   // (cursor will move to next line automatically during printing with 'tft.println'
   //  or stay on the line is there is room for the text with tft.print)
-  tft.setCursor(20, 120);
+  tft.setCursor(50, 80);
   Serial.printf("cursor Y location %d\n",tft.getCursorY());
   // Set the font colour to be white with a black background, set text size multiplier to 1
   tft.setRotation(2);
@@ -453,7 +455,9 @@ void wav_startPlayingFile(const char *wavfilename)
   I2S_WAV.bufferlen = -1;
   I2S_WAV.buffer_index = 0;
   I2S_WAV.playing = true;
-  wav_loop();
+  while(I2S_WAV.playing){
+    wav_loop();
+  }
 }
 
 void startPlaying(const char *filename)
